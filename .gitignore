@@ -1,0 +1,27 @@
+# Compiled binary
+kube-gateway
+*.exe
+
+# IDE-specific files
+.idea/
+.idea/*
+.vscode/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Go dependencies (if you use vendor)
+vendor/
+
+# =========================================================
+# !! 安全警告：绝不能将包含密钥的配置文件提交到 Git 仓库 !!
+# =========================================================
+# 忽略所有名为 config.yaml 的文件
+config.yaml
+
+# 忽略所有以 .config 结尾的文件 (下游集群的 kubeconfig)
+*.config
+
+# 忽略 config 目录下的所有 yaml 文件
+config/*.yaml
