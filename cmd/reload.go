@@ -13,7 +13,7 @@ import (
 
 var reloadCmd = &cobra.Command{
 	Use:   "reload",
-	Short: "重新加载正在运行的网关服务器的配置",
+	Short: "Reload the configuration of the running gateway server",
 	Run:   runReload,
 }
 

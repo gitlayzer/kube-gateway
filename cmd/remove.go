@@ -13,7 +13,7 @@ import (
 
 var removeCmd = &cobra.Command{
 	Use:   "remove [cluster-name]",
-	Short: "移除一个集群配置，并自动清理本地 kubeconfig",
+	Short: "Remove a cluster configuration and automatically clean local kubeconfig",
 	Args:  cobra.ExactArgs(1),
 	Run:   runRemove,
 }

@@ -43,7 +43,7 @@ var (
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "启动 API 网关服务器 (如果需要会自动生成 TLS 证书)",
+	Short: "Start the API gateway server (the TLS certificate will be automatically generated if needed)",
 	Run:   runServe,
 }
 

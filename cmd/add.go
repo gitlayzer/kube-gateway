@@ -16,7 +16,7 @@ import (
 
 var addCmd = &cobra.Command{
 	Use:   "add [cluster-name] [source-kubeconfig-path]",
-	Short: "添加一个新的集群配置，并自动更新本地 kubeconfig",
+	Short: "Add a new cluster configuration and automatically update local kubeconfig",
 	Args:  cobra.ExactArgs(2),
 	Run:   runAdd,
 }

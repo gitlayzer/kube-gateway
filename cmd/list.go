@@ -12,7 +12,7 @@ import (
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all configured clusters",
+	Short: "List the cluster list that has been added",
 	Run:   runList,
 }
 
