@@ -3,7 +3,7 @@ kube-gateway
 *.exe
 
 # IDE-specific files
-.idea/
+.idea
 .idea/*
 .vscode/
 
