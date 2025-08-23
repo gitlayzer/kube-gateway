@@ -9,6 +9,11 @@ on:
     tags:
       - 'v*.*.*'
 
+  release:
+    # 只有当一个 Release 被“发布”时才触发
+    # 这包括直接创建并发布，或者从草稿(draft)状态发布
+    types: [published]
+
 # 定义工作流中的任务
 jobs:
   build-and-release:
