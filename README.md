@@ -1,7 +1,6 @@
 # Kube-Gateway
 
 ![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=for-the-badge&logo=go)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 ![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge)
 
 **一个集中的、零配置的 Kubernetes API 网关，旨在简化多集群管理。**
