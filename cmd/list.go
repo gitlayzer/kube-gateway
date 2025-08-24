@@ -20,7 +20,7 @@ type ClusterDisplayInfo struct {
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "列出所有已配置的集群及其详细信息",
+	Short: "List the cluster list that has been added",
 	Run:   runList,
 }
 
