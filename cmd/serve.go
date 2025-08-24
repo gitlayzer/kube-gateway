@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -85,11 +86,13 @@ func runServe(cmd *cobra.Command, args []string) {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
-	router.Any("/*proxyPath", handleRequestWithGin)
+	//router.Any("/*proxyPath", handleRequestWithGin)
+	router.Any("/api/*proxyPath", handleRequestWithGin)
+	router.Any("/apis/*proxyPath", handleRequestWithGin)
 
 	listenAddr := "0.0.0.0:8443"
 	log.Printf("正在启动 kube-gateway HTTPS 服务器于 %s (PID: %d)", listenAddr, pid)
-	if err := router.RunTLS(listenAddr, certPath, keyPath); err != nil && err != http.ErrServerClosed {
+	if err := router.RunTLS(listenAddr, certPath, keyPath); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("启动 HTTPS 服务失败: %v", err)
 	}
 }
