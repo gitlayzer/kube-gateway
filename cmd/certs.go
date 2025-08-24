@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func ensureCerts(certPath, keyPath string) error {
+func ensureCerts(certPath, keyPath, publicAddress string) error {
 	// 检查文件是否存在
 	if _, err := os.Stat(certPath); err == nil {
 		if _, err = os.Stat(keyPath); err == nil {
@@ -54,6 +54,13 @@ func ensureCerts(certPath, keyPath string) error {
 
 		IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
 		DNSNames:    []string{"localhost"},
+	}
+
+	// 尝试将 publicAddress 解析为 IP 地址
+	if ip := net.ParseIP(publicAddress); ip != nil {
+		template.IPAddresses = append(template.IPAddresses, ip)
+	} else {
+		template.DNSNames = append(template.DNSNames, publicAddress)
 	}
 
 	// 3. 创建自签名证书

@@ -13,6 +13,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
+var (
+	gatewayAddress string
+)
+
 var addCmd = &cobra.Command{
 	Use:   "add [cluster-name] [source-kubeconfig-path]",
 	Short: "Add a new cluster configuration and automatically update local kubeconfig",
@@ -21,6 +25,7 @@ var addCmd = &cobra.Command{
 }
 
 func init() {
+	addCmd.Flags().StringVar(&gatewayAddress, "gateway-address", "https://127.0.0.1:8443", "kube-gateway 服务的公共访问地址 (IP或域名)")
 	rootCmd.AddCommand(addCmd)
 }
 
@@ -60,7 +65,7 @@ func runAdd(cmd *cobra.Command, args []string) {
 	//  2. 客户端 kubeconfig 自动更新
 	// =========================================================
 	fmt.Println("\n🔄 正在自动更新本地 kubeconfig...")
-	if err := updateKubeconfig(clusterName, newToken); err != nil {
+	if err := updateKubeconfig(clusterName, newToken, gatewayAddress); err != nil {
 		fmt.Printf("   ❌ 自动更新 kubeconfig 失败: %v\n", err)
 		fmt.Println("   请手动配置你的 ~/.kube/config 文件。")
 	} else {
@@ -71,7 +76,7 @@ func runAdd(cmd *cobra.Command, args []string) {
 	fmt.Println("\n💡 如果服务正在运行，请执行 'kube-gateway reload' 来应用变更。")
 }
 
-func updateKubeconfig(clusterName, token string) error {
+func updateKubeconfig(clusterName, token, gatewayAddr string) error {
 	// clientcmd.RecommendedHomeFile 是获取 ~/.kube/config 路径的标准方法
 	kubeconfigPath := clientcmd.RecommendedHomeFile
 
@@ -86,7 +91,7 @@ func updateKubeconfig(clusterName, token string) error {
 
 	// 定义我们网关的 cluster 信息 (可以复用)
 	gatewayClusterName := "kube-gateway"
-	gatewayServerURL := "https://127.0.0.1:8443"
+	gatewayServerURL := gatewayAddr
 
 	// 检查网关 cluster 是否已存在，不存在则添加
 	gatewayCluster, exists := config.Clusters[gatewayClusterName]

@@ -34,8 +34,9 @@ func (t *authHeaderStrippingTransport) RoundTrip(req *http.Request) (*http.Respo
 }
 
 var (
-	proxyMap   map[string]*httputil.ReverseProxy
-	proxyMutex sync.RWMutex
+	proxyMap      map[string]*httputil.ReverseProxy
+	proxyMutex    sync.RWMutex
+	publicAddress string
 )
 
 var serveCmd = &cobra.Command{
@@ -45,6 +46,7 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
+	serveCmd.Flags().StringVar(&publicAddress, "public-address", "127.0.0.1", "网关可被外部访问的 IP 地址或域名")
 	rootCmd.AddCommand(serveCmd)
 }
 
@@ -62,7 +64,7 @@ func runServe(cmd *cobra.Command, args []string) {
 	pidFile := filepath.Join(pidDir, "kube-gateway.pid")
 
 	// 确保证书存在
-	if err := ensureCerts(certPath, keyPath); err != nil {
+	if err := ensureCerts(certPath, keyPath, publicAddress); err != nil {
 		log.Fatalf("处理 TLS 证书时出错: %v", err)
 	}
 
