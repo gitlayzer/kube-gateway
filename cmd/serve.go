@@ -14,8 +14,10 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -34,9 +36,11 @@ func (t *authHeaderStrippingTransport) RoundTrip(req *http.Request) (*http.Respo
 }
 
 var (
-	proxyMap      map[string]*httputil.ReverseProxy
-	proxyMutex    sync.RWMutex
-	publicAddress string
+	proxyMap          map[string]*httputil.ReverseProxy
+	proxyMutex        sync.RWMutex
+	publicAddress     string
+	tokenToClusterMap map[string]string
+	enableAuditLog    bool
 )
 
 var serveCmd = &cobra.Command{
@@ -46,6 +50,7 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
+	serveCmd.Flags().BoolVar(&enableAuditLog, "enable-audit-log", false, "启用 API 请求的审计日志功能")
 	serveCmd.Flags().StringVar(&publicAddress, "public-address", "127.0.0.1", "网关可被外部访问的 IP 地址或域名")
 	rootCmd.AddCommand(serveCmd)
 }
@@ -88,6 +93,12 @@ func runServe(cmd *cobra.Command, args []string) {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
+
+	if enableAuditLog {
+		log.Println("审计日志功能已启用。")
+		router.Use(AuditLogMiddleware())
+	}
+
 	//router.Any("/*proxyPath", handleRequestWithGin)
 	router.Any("/api/*proxyPath", handleRequestWithGin)
 	router.Any("/apis/*proxyPath", handleRequestWithGin)
@@ -111,11 +122,14 @@ func loadConfigAndProxies() error {
 		log.Printf("集群目录 %s 不存在。没有加载任何集群。", clustersDir)
 		proxyMutex.Lock()
 		proxyMap = make(map[string]*httputil.ReverseProxy)
+		tokenToClusterMap = make(map[string]string)
 		proxyMutex.Unlock()
 		return nil
 	}
 
 	newProxyMap := make(map[string]*httputil.ReverseProxy)
+
+	newTokenToClusterMap := make(map[string]string)
 
 	err = filepath.WalkDir(clustersDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -166,10 +180,63 @@ func loadConfigAndProxies() error {
 
 	proxyMutex.Lock()
 	proxyMap = newProxyMap
+	tokenToClusterMap = newTokenToClusterMap
 	proxyMutex.Unlock()
 
 	log.Printf("配置加载完毕。当前有 %d 个集群代理处于活动状态。", len(newProxyMap))
 	return nil
+}
+
+func AuditLogMiddleware() gin.HandlerFunc {
+	// 初始化 logrus
+	auditLogger := logrus.New()
+	auditLogger.SetFormatter(&logrus.JSONFormatter{}) // 设置输出为 JSON 格式
+
+	// 设置日志文件
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalf("错误: 无法获取用户主目录以设置审计日志: %v", err)
+	}
+	logDir := filepath.Join(home, ".kube-gateway", "logs")
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		log.Fatalf("错误: 无法创建审计日志目录 %s: %v", logDir, err)
+	}
+	logFile := filepath.Join(logDir, "audit.log")
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		auditLogger.SetOutput(file)
+	} else {
+		log.Println("无法打开审计日志文件，日志将输出到标准错误。")
+	}
+
+	return func(c *gin.Context) {
+		startTime := time.Now()
+
+		// 先执行请求处理
+		c.Next()
+
+		// 请求处理完成后记录日志
+		latency := time.Since(startTime)
+		token := strings.TrimPrefix(c.Request.Header.Get("Authorization"), "Bearer ")
+
+		proxyMutex.RLock()
+		clusterName, _ := tokenToClusterMap[token]
+		proxyMutex.RUnlock()
+
+		// 只记录通过代理的 K8s API 请求
+		if strings.HasPrefix(c.Request.URL.Path, "/api") || strings.HasPrefix(c.Request.URL.Path, "/apis") {
+			entry := auditLogger.WithFields(logrus.Fields{
+				"timestamp":   startTime.Format(time.RFC3339),
+				"source_ip":   c.ClientIP(),
+				"method":      c.Request.Method,
+				"path":        c.Request.URL.Path,
+				"status_code": c.Writer.Status(),
+				"latency_ms":  latency.Milliseconds(),
+				"cluster":     clusterName,
+			})
+			entry.Info("API request processed")
+		}
+	}
 }
 
 func handleSignals() {
