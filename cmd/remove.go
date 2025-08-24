@@ -31,9 +31,6 @@ func runRemove(cmd *cobra.Command, args []string) {
 	}
 	clusterDir := filepath.Join(home, ".kube-gateway", "clusters", clusterName)
 
-	// =========================================================
-	//  1. 服务端清理
-	// =========================================================
 	if _, err := os.Stat(clusterDir); os.IsNotExist(err) {
 		fmt.Printf("✅ 服务端配置 '%s' 不存在，无需清理。\n", clusterName)
 	} else {
@@ -43,9 +40,6 @@ func runRemove(cmd *cobra.Command, args []string) {
 		fmt.Printf("✅ 服务端配置 '%s' 已成功移除。\n", clusterName)
 	}
 
-	// =========================================================
-	//  2. 客户端 kubeconfig 自动清理
-	// =========================================================
 	fmt.Println("\n🔄 正在自动清理本地 kubeconfig...")
 	if err := cleanupKubeconfig(clusterName); err != nil {
 		fmt.Printf("   ❌ 自动清理 kubeconfig 失败: %v\n", err)
@@ -57,7 +51,6 @@ func runRemove(cmd *cobra.Command, args []string) {
 	fmt.Println("\n💡 如果服务正在运行，请执行 'kube-gateway reload' 来应用变更。")
 }
 
-// cleanupKubeconfig 负责从 kubeconfig 中删除指定的集群相关信息
 func cleanupKubeconfig(clusterName string) error {
 	kubeconfigPath := clientcmd.RecommendedHomeFile
 

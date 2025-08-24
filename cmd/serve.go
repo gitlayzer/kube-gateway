@@ -20,15 +20,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// authHeaderStrippingTransport 是一个实现了 http.RoundTripper 接口的结构体。
-// 它的作用是在将请求传递给其底层的 transport 之前，先删除请求中的 "Authorization" Header。
 type authHeaderStrippingTransport struct {
 	// underlyingTransport 字段保存了真正用来发送请求的原始 transport
 	underlyingTransport http.RoundTripper
 }
 
-// RoundTrip 实现了 http.RoundTripper 接口的核心方法。
-// 每个通过这个 transport 的请求都会先经过这个方法。
 func (t *authHeaderStrippingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// 【关键逻辑】在请求被真正发送出去之前，删除原始的 Authorization Header
 	req.Header.Del("Authorization")

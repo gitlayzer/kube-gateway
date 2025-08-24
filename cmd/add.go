@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
-	// 引入 client-go 中专门处理 kubeconfig 的库
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
@@ -72,7 +71,6 @@ func runAdd(cmd *cobra.Command, args []string) {
 	fmt.Println("\n💡 如果服务正在运行，请执行 'kube-gateway reload' 来应用变更。")
 }
 
-// updateKubeconfig 是一个辅助函数，负责所有 kubeconfig 的读写操作
 func updateKubeconfig(clusterName, token string) error {
 	// clientcmd.RecommendedHomeFile 是获取 ~/.kube/config 路径的标准方法
 	kubeconfigPath := clientcmd.RecommendedHomeFile
@@ -151,7 +149,6 @@ func updateKubeconfig(clusterName, token string) error {
 	return nil
 }
 
-// copyFile 辅助函数
 func copyFile(src, dst string) error {
 	sourceFile, err := os.Open(src)
 	if err != nil {
