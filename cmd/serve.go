@@ -169,6 +169,7 @@ func loadConfigAndProxies() error {
 			proxy.Transport = &authHeaderStrippingTransport{underlyingTransport: backendTransport}
 
 			newProxyMap[token] = proxy
+			newTokenToClusterMap[token] = clusterName
 			return filepath.SkipDir
 		}
 		return nil
@@ -217,14 +218,18 @@ func AuditLogMiddleware() gin.HandlerFunc {
 
 		// 请求处理完成后记录日志
 		latency := time.Since(startTime)
-		token := strings.TrimPrefix(c.Request.Header.Get("Authorization"), "Bearer ")
-
 		proxyMutex.RLock()
-		clusterName, _ := tokenToClusterMap[token]
 		proxyMutex.RUnlock()
 
 		// 只记录通过代理的 K8s API 请求
 		if strings.HasPrefix(c.Request.URL.Path, "/api") || strings.HasPrefix(c.Request.URL.Path, "/apis") {
+			var clusterName string
+			if value, exists := c.Get("targetCluster"); exists {
+				if name, ok := value.(string); ok {
+					clusterName = name
+				}
+			}
+
 			entry := auditLogger.WithFields(logrus.Fields{
 				"timestamp":   startTime.Format(time.RFC3339),
 				"source_ip":   c.ClientIP(),
@@ -260,10 +265,14 @@ func handleRequestWithGin(c *gin.Context) {
 	token := strings.TrimPrefix(authHeader, "Bearer ")
 	proxyMutex.RLock()
 	proxy, found := proxyMap[token]
+	clusterName, _ := tokenToClusterMap[token]
 	proxyMutex.RUnlock()
 	if !found {
 		c.String(http.StatusUnauthorized, "未授权: 无效的 Token")
 		return
 	}
+
+	c.Set("targetCluster", clusterName)
+
 	proxy.ServeHTTP(c.Writer, c.Request)
 }
